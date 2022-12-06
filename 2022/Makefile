@@ -1,5 +1,5 @@
 C++ := g++
-BINS = $(subst /,/out,$(sort $(dir $(wildcard */))))
+BINS = $(patsubst %,%out,$(sort $(dir $(wildcard */))))
 
 day%/out:
 	$(C++) ./$(patsubst %/out,%,$@)/$(patsubst %/out,%.cpp,$@) -o ./$@
