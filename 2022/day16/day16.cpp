@@ -37,26 +37,29 @@ class Cave {
 		std::vector<struct route> routes;
 		const bool inline operator==(std::string othr) const { return nm == othr; };
 	};
-//	std::map<std::string, struct valve> valves;
 	std::vector<struct valve> valves;
 	void calcRoutes(int pass) {
 		for (int i = 0; i < valves.size(); i++) {
 			struct valve *v = &valves[i];
 			for (auto n: v->ngbrIds) {
 				struct valve *ngbr = &valves[n];
-				if (!pass && v->routes[n].dst < 0) {
+				if (!pass && v->routes[n].dst == -1) {
 					v->routes[n] = {ngbr->id, ngbr->id, 1, ngbr->nm, ngbr->nm};
 					continue;
 				}
 				for (int j = 0; j < ngbr->routes.size(); j++) {
 					struct route *r = &ngbr->routes[j];
-					if (r->dst < 0 || r->dst == v->id)
+					if (r->dst == -1 || r->dst == ngbr->id)
 						continue;
 
-					if (v->routes[r->dst].dst < 0 /*||
-							v->routes[r->dst].hops + 1 > r->hops*/)
-						v->routes[r->dst] = {r->dst, ngbr->id, r->hops + 1,
-							r->nm, ngbr->nm};
+					if (v->routes[r->dst].dst < 0 ||
+							v->routes[r->dst].hops > r->hops + 1) {
+						v->routes[r->dst].dst = r->dst;
+						v->routes[r->dst].nxt = ngbr->id;
+						v->routes[r->dst].hops = r->hops + 1;
+						v->routes[r->dst].nm = r->nm;
+						v->routes[r->dst].next = ngbr->nm;
+					}
 				}
 			}
 		}
@@ -73,9 +76,9 @@ class Cave {
 			std::cout << std::endl;
 		}
 	};
-	int calcPressure(std::vector<int> path, int time = 26) {
+	int calcPressure(std::vector<int> path, int start, int time = 26) {
 		int pressure = 0;
-		int curr = 0;
+		int curr = start;
 		for (auto n: path) {
 			int hops = valves[curr].routes[n].hops;
 			if (time < 0)
@@ -87,15 +90,15 @@ class Cave {
 		};
 		return pressure;
 	};
-	int findBestPartOne(std::vector<int> &curr, std::vector<int> &set) {
-		int best = calcPressure(curr, 30);
+	int findBestPartOne(std::vector<int> &curr, std::vector<int> &set, int startId) {
+		int best = calcPressure(curr, startId, 30);
 		if (best < 0)
 			return -1;
 		for (int i = 0; i < set.size(); i++) {
 			if (std::find(begin(curr), end(curr), set[i]) != curr.end())
 				continue;
 			curr.push_back(set[i]);
-			int tmp = findBestPartOne(curr, set);
+			int tmp = findBestPartOne(curr, set, startId);
 			if (tmp > best)
 				best = tmp;
 			curr.pop_back();
@@ -114,14 +117,11 @@ class Cave {
 			if (valves[i].flow)
 				dsts.push_back(valves[i].id);
 		}
-//		std::sort(begin(dsts), end(dsts),
-//				[this](int &lhs, int &rhs){
-//					return valves[lhs].flow > valves[rhs].flow;
-//				});
-
-		std::cout << "dsts: " << dsts.size() << std::endl;
+//		std::cout << "dsts: " << dsts.size() << std::endl;
 		std::vector<int> path;
-		int bestPressure = findBestPartOne(path, dsts);
+		auto valveAA = std::find_if(begin(valves), end(valves),
+				[this](const struct valve &v) { return v.nm == "AA"; });
+		int bestPressure = findBestPartOne(path, dsts, valveAA->id);
 
 		auto done = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(done - start);
@@ -162,26 +162,23 @@ public:
 					prev = i + 1;
 			};
 
-			std::cout << line << std::endl;
+//			std::cout << line << std::endl;
 		}
 		for (auto v = valves.begin(); v != valves.end(); v++) {
 			v->routes.resize(valves.size(), {-1, -1, -1, "", ""});
-			for (auto n: v->ngbr) {
-				for (int i = 0; i < valves.size(); i++) {
-					if (valves[i].nm == n) {
-						v->ngbrIds.push_back(i);
-						break;
-					}
-				}
+			for (auto nNm: v->ngbr) {
+				auto n = std::find_if(begin(valves), end(valves),
+					[nNm](const auto &o) { return o.nm == nNm; });
+				v->ngbrIds.push_back(n->id);
 			}
 		}
-		for (auto v = valves.begin(); v != valves.end(); v++) {
-			std::cout << v->id << ": " << v->nm << " " << v->flow << " ";
-			for (int n = 0; n < v->ngbr.size(); n++)
-				std::cout << v->ngbr[n] << "(" << v->ngbrIds[n] << ") ";
-			std::cout << std::endl;
-		}
-		std::cout << valves.size() << std::endl;
+//		for (auto v = valves.begin(); v != valves.end(); v++) {
+//			std::cout << v->id << ": " << v->nm << " " << v->flow << " ";
+//			for (int n = 0; n < v->ngbr.size(); n++)
+//				std::cout << v->ngbr[n] << "(" << v->ngbrIds[n] << ") ";
+//			std::cout << std::endl;
+//		}
+//		std::cout << valves.size() << std::endl;
 
 		doPartOne();
 		doPartTwo();
