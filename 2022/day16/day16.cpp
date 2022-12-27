@@ -18,9 +18,59 @@ public:
 	std::string getLine(void) { return lastLine; };
 };
 
+class Timer {
+	bool stopped;
+	std::chrono::high_resolution_clock::time_point start;
+	std::chrono::high_resolution_clock::time_point end;
+public:
+	Timer(void) : stopped(false) { startTiming(); };
+	void startTiming(void) {
+		stopped = false;
+		start = std::chrono::high_resolution_clock::now();
+	};
+	void stopTiming(void) {
+		end = std::chrono::high_resolution_clock::now();
+		stopped = true;
+	};
+	std::string getTimeStr(void) {
+		std::string ret = "";
+		if (!stopped)
+			return "";
+		
+		auto durationUs = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+		auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		auto durationS = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+		auto durationM = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+		auto durationH = std::chrono::duration_cast<std::chrono::hours>(end - start);
+		std::chrono::duration<long, std::micro> intUs = durationUs;
+		std::chrono::duration<long, std::milli> intMs = durationMs;
+		std::chrono::duration<long, std::ratio<1>> intS = durationS;
+		std::chrono::duration<long, std::ratio<60>> intM = durationM;
+		std::chrono::duration<long, std::ratio<3600>> intH = durationH;
+
+		if (intMs.count()) {
+			if (intS.count()) {
+				if (intM.count()) {
+					if (intH.count()) {
+						ret += std::to_string(intH.count()) + "h ";
+					}
+					ret += std::to_string(intM.count() % 60) + "m ";
+				}
+				ret += std::to_string(intS.count() % 60) + "s ";
+			}
+			ret += std::to_string(intMs.count() % 1000) + "ms ";
+		}
+		ret += std::to_string(intUs.count() % 1000) + "us ";
+		ret += "(" + std::to_string(intUs.count()) + "us total)";
+		return ret;
+	};
+};
+
 class Cave {
 	int partOneAnswer;
 	int partTwoAnswer;
+	int currBest;
+	int iterationsChecked;
 	struct route {
 		int dst;
 		int nxt;
@@ -38,6 +88,7 @@ class Cave {
 		const bool inline operator==(std::string othr) const { return nm == othr; };
 	};
 	std::vector<struct valve> valves;
+	int start;
 	void calcRoutes(int pass) {
 		for (int i = 0; i < valves.size(); i++) {
 			struct valve *v = &valves[i];
@@ -76,10 +127,27 @@ class Cave {
 			std::cout << std::endl;
 		}
 	};
-	int calcPressure(std::vector<int> path, int start, int time = 26) {
+	void doRoutes(void) {
+		Timer timer = Timer();
+		for (int i = 0; i < valves.size(); i++)
+			calcRoutes(i);
+//		printRoutes();
+		timer.stopTiming();
+		std::cout << "Time taken to calculate routes: " << timer.getTimeStr() << std::endl;
+	};
+	std::string getPathStr(std::vector<int> path) {
+		std::string ret = "";
+		for (auto s: path) {
+			ret += valves[s].nm + "(";
+			ret += std::to_string(s) + ") ";
+		}
+		return ret;
+	};
+	int calcPressure(std::vector<int> path, int time = 30, int off = 0, int end = 0) {
 		int pressure = 0;
 		int curr = start;
-		for (auto n: path) {
+		for (int i = off; i < (end ? end : path.size()); i++) {
+			int n = path[i];
 			int hops = valves[curr].routes[n].hops;
 			if (time < 0)
 				return -1;
@@ -90,50 +158,98 @@ class Cave {
 		};
 		return pressure;
 	};
-	int findBestPartOne(std::vector<int> &curr, std::vector<int> &set, int startId) {
-		int best = calcPressure(curr, startId, 30);
+	int findBestPartOne(std::vector<int> &curr, std::vector<int> &set) {
+		int best = calcPressure(curr, 30);
 		if (best < 0)
 			return -1;
 		for (int i = 0; i < set.size(); i++) {
 			if (std::find(begin(curr), end(curr), set[i]) != curr.end())
 				continue;
 			curr.push_back(set[i]);
-			int tmp = findBestPartOne(curr, set, startId);
-			if (tmp > best)
+			int tmp = findBestPartOne(curr, set);
+			if (tmp > best) {
 				best = tmp;
+				if (best > currBest) {
+					currBest = best;
+					std::cout << "\u001b[2K" << "Curr best: " << currBest << " steps: " 
+						<< curr.size() << " " << getPathStr(curr) << std::endl << "\033[F";
+				}
+			}
 			curr.pop_back();
 		}
 		return best;
 	}
 	void doPartOne(void) {
 		std::vector<int> dsts;
-		std::cout << "Part One start!" << std::endl;
-		auto start = std::chrono::high_resolution_clock::now();
+		Timer timer = Timer();
 
-		for (int i = 0; i < valves.size(); i++)
-			calcRoutes(i);
-//		printRoutes();
 		for (int i = 0; i < valves.size(); i++) {
 			if (valves[i].flow)
 				dsts.push_back(valves[i].id);
 		}
-//		std::cout << "dsts: " << dsts.size() << std::endl;
 		std::vector<int> path;
-		auto valveAA = std::find_if(begin(valves), end(valves),
-				[this](const struct valve &v) { return v.nm == "AA"; });
-		int bestPressure = findBestPartOne(path, dsts, valveAA->id);
+		int bestPressure = findBestPartOne(path, dsts);
 
-		auto done = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(done - start);
-		std::cout << "Time taken by partOne: " << duration.count() << " ms" << std::endl;
-		if (bestPressure != 1460) {
-			std::cout << "Wrong!" << std::endl;
-		}
+		timer.stopTiming();
+		std::cout << std::endl << "Time taken by part one: " << timer.getTimeStr() << std::endl;
 		partOneAnswer = bestPressure;
 
 	};
+	int calcPressureTwo(std::vector<int> path, int time = 26) {
+		int best = 0;
+		if (path.size() < 5)
+			return 0;
+		for (int i = 1; i < path.size() - 1; i++) {
+			iterationsChecked ++;
+			int pres1 = calcPressure(path, time, 0, i);
+			int pres2 = calcPressure(path, time, i, path.size());
+			if (pres1 > 0 && pres2 > 0 && best < (pres1 + pres2))
+				best = pres1 + pres2;
+		}
+		return best;
+	}
+	int findBestPartTwo(std::vector<int> &curr, std::vector<int> &set) {
+		int best = calcPressureTwo(curr);
+		if (best < 0)
+			return -1;
+		for (int i = 0; i < set.size(); i++) {
+			if (std::find(begin(curr), end(curr), set[i]) != curr.end())
+				continue;
+			curr.push_back(set[i]);
+			int tmp = findBestPartTwo(curr, set);
+			if (tmp > best) {
+				best = tmp;
+				if (best > currBest) {
+					currBest = best;
+					std::cout << "Curr best: " << currBest << " steps: " 
+						<< curr.size() << " " << getPathStr(curr) << std::endl << "\033[F";
+				}
+
+			}
+			curr.pop_back();
+		}
+		return best;
+	}
 	void doPartTwo(void) {
-		partTwoAnswer = 0;
+		std::vector<int> dsts;
+		Timer timer = Timer();
+
+		for (int i = 0; i < valves.size(); i++)
+			calcRoutes(i);
+		for (int i = 0; i < valves.size(); i++) {
+			if (valves[i].flow)
+				dsts.push_back(valves[i].id);
+		}
+
+		std::sort(begin(dsts), end(dsts), [this] (const int &a, const int &b) -> bool {
+					return valves[a].flow > valves[b].flow; });
+		std::vector<int> path;
+		currBest = 0;
+		int bestPressure = findBestPartTwo(path, dsts);
+
+		timer.stopTiming();
+		std::cout << std::endl << "Time taken by part two: " << timer.getTimeStr() << std::endl;
+		partTwoAnswer = bestPressure;
 	};
 public:
 	Cave(std::string filename) {
@@ -165,6 +281,8 @@ public:
 //			std::cout << line << std::endl;
 		}
 		for (auto v = valves.begin(); v != valves.end(); v++) {
+			if (v->nm == "AA")
+				start = v->id;
 			v->routes.resize(valves.size(), {-1, -1, -1, "", ""});
 			for (auto nNm: v->ngbr) {
 				auto n = std::find_if(begin(valves), end(valves),
@@ -179,7 +297,7 @@ public:
 //			std::cout << std::endl;
 //		}
 //		std::cout << valves.size() << std::endl;
-
+		doRoutes();
 		doPartOne();
 		doPartTwo();
 	};
