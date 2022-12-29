@@ -36,7 +36,6 @@ public:
 		std::string ret = "";
 		if (!stopped)
 			return "";
-		
 		auto durationUs = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 		auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 		auto durationS = std::chrono::duration_cast<std::chrono::seconds>(end - start);
@@ -173,8 +172,10 @@ class Cave {
 				best = tmp;
 				if (best > currBest) {
 					currBest = best;
-					std::cout << "\u001b[2K" << "Curr best: " << currBest << " steps: " 
-						<< curr.size() << " " << getPathStr(curr) << std::endl << "\033[F";
+					bestStr0 = getPathStr(curr);
+					std::cout << "\u001b[2K" << "Curr best: " << currBest <<
+						" steps: " << curr.size() << " " << bestStr0 <<
+						std::endl << "\033[F";
 				}
 			}
 			curr.pop_back();
@@ -184,6 +185,7 @@ class Cave {
 	void doPartOne(void) {
 		std::vector<int> dsts;
 		Timer timer = Timer();
+		currBest = 0;
 
 		for (int i = 0; i < valves.size(); i++) {
 			if (valves[i].flow)
@@ -215,7 +217,7 @@ class Cave {
 					bestStr1 = getPathStr(curr);
 					std::cout << "\u001b[2K" << "Curr best: " <<
 						currBest << " steps: " << curr.size() << " " <<
-						bestStr0 << " | " << bestStr1 << std::endl << "\033[F";
+						bestStr0 << "| " << bestStr1 << std::endl << "\033[F";
 				}
 			}
 			curr.pop_back();
