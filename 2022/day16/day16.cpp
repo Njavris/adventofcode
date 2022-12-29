@@ -89,6 +89,8 @@ class Cave {
 	};
 	std::vector<struct valve> valves;
 	int start;
+	std::string bestStr0;
+	std::string bestStr1;
 	void calcRoutes(int pass) {
 		for (int i = 0; i < valves.size(); i++) {
 			struct valve *v = &valves[i];
@@ -143,7 +145,7 @@ class Cave {
 		}
 		return ret;
 	};
-	int calcPressure(std::vector<int> path, int time = 30, int off = 0, int end = 0) {
+	int calcPressure(std::vector<int> &path, int time = 30, int off = 0, int end = 0) {
 		int pressure = 0;
 		int curr = start;
 		for (int i = off; i < (end ? end : path.size()); i++) {
@@ -193,25 +195,43 @@ class Cave {
 		timer.stopTiming();
 		std::cout << std::endl << "Time taken by part one: " << timer.getTimeStr() << std::endl;
 		partOneAnswer = bestPressure;
-
 	};
-	int calcPressureTwo(std::vector<int> path, int time = 26) {
-		int best = 0;
-		if (path.size() < 5)
-			return 0;
-		for (int i = 1; i < path.size() - 1; i++) {
-			iterationsChecked ++;
-			int pres1 = calcPressure(path, time, 0, i);
-			int pres2 = calcPressure(path, time, i, path.size());
-			if (pres1 > 0 && pres2 > 0 && best < (pres1 + pres2))
-				best = pres1 + pres2;
-		}
-		return best;
-	}
-	int findBestPartTwo(std::vector<int> &curr, std::vector<int> &set) {
-		int best = calcPressureTwo(curr);
+	int findBestPartTwoSecond(std::vector<int> &path0, int path0Pressure, std::vector<int> &curr,
+			std::vector<int> &set) {
+		int best = calcPressure(curr, 26);
 		if (best < 0)
 			return -1;
+		for (int i = 0; i < set.size(); i++) {
+			if ((std::find(begin(curr), end(curr), set[i]) != curr.end()) || 
+					(std::find(begin(path0), end(path0), set[i]) != path0.end()))
+				continue;
+			curr.push_back(set[i]);
+			int tmp = findBestPartTwoSecond(path0, path0Pressure, curr, set);
+			if (tmp > best) {
+				best = tmp;
+				if (best + path0Pressure > currBest) {
+					currBest = best + path0Pressure;
+					bestStr0 = getPathStr(path0);
+					bestStr1 = getPathStr(curr);
+					std::cout << "\u001b[2K" << "Curr best: " <<
+						currBest << " steps: " << curr.size() << " " <<
+						bestStr0 << " | " << bestStr1 << std::endl << "\033[F";
+				}
+			}
+			curr.pop_back();
+		}
+		return best;
+	};
+	int findBestPartTwo(std::vector<int> &curr, std::vector<int> &set) {
+		int path0 = calcPressure(curr, 26);
+		if (path0 < 0)
+			return -1;
+		std::vector<int> p1;
+		int path1 = findBestPartTwoSecond(curr, path0, p1, set);
+		if (path1 < 0)
+			return -1;
+		int best = path0 + path1;
+
 		for (int i = 0; i < set.size(); i++) {
 			if (std::find(begin(curr), end(curr), set[i]) != curr.end())
 				continue;
@@ -219,12 +239,6 @@ class Cave {
 			int tmp = findBestPartTwo(curr, set);
 			if (tmp > best) {
 				best = tmp;
-				if (best > currBest) {
-					currBest = best;
-					std::cout << "Curr best: " << currBest << " steps: " 
-						<< curr.size() << " " << getPathStr(curr) << std::endl << "\033[F";
-				}
-
 			}
 			curr.pop_back();
 		}
@@ -233,18 +247,13 @@ class Cave {
 	void doPartTwo(void) {
 		std::vector<int> dsts;
 		Timer timer = Timer();
+		currBest = 0;
 
-		for (int i = 0; i < valves.size(); i++)
-			calcRoutes(i);
 		for (int i = 0; i < valves.size(); i++) {
 			if (valves[i].flow)
 				dsts.push_back(valves[i].id);
 		}
-
-		std::sort(begin(dsts), end(dsts), [this] (const int &a, const int &b) -> bool {
-					return valves[a].flow > valves[b].flow; });
 		std::vector<int> path;
-		currBest = 0;
 		int bestPressure = findBestPartTwo(path, dsts);
 
 		timer.stopTiming();
