@@ -45,37 +45,6 @@ class Tetris {
 		}
 		std::cout << "  +-------+" << std::endl;
 	};
-	int checkForPattern(std::vector<uint8_t> &tunnel, int a, int b) {
-		int i = 0;
-		while (tunnel[a + i] == tunnel[b + i] && (a + i) < b) {
-			i ++;
-		}
-		return i;
-	}
-	int findPattern(std::vector<uint8_t> &tunnel, int *offs) {
-		int best = 0;
-		int bestOffs = *offs;
-		for (int i = 0; i < (tunnel.size() - best); i++) {
-			for (int j = i + 1; j < tunnel.size(); j++) {
-				if (tunnel[i] == tunnel[j]) {
-					int matched = 0;
-					while (tunnel[i + matched] == tunnel[j + matched] &&
-							(i + matched) < j)
-						matched ++;
-					if (matched > best) {
-						best = matched;
-						bestOffs = i;
-						std::cout << "\u001b[2K" << "Most matched: " << std::dec <<
-						best << " " << i << " " << j << std::endl << "\033[F";
-					}
-				}
-			}
-		}
-		std::cout << std::endl;
-
-		*offs = bestOffs;
-		return best;
-	};
 	int doTunnel(std::vector<uint8_t> &tunnel, int rockLimit = 2022,
 			bool lookForPattern = false, int *patternOff = NULL, int *patternLen = NULL, int *patternRocks = NULL) {
 		int rows = 0;
