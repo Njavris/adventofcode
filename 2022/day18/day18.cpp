@@ -148,10 +148,7 @@ public:
 			int x, y, z;
 			std::string ln = in.getLine();
 			sscanf(ln.c_str(), "%d,%d,%d", &x, &y, &z);
-			x += 2;
-			y += 2;
-			z += 2;
-			input.push_back({x, y, z});
+			input.push_back({++x, ++y, ++z});
 			if (xMin < 0 || xMin > x)
 				xMin = x;
 			if (yMin < 0 || yMin > y)
