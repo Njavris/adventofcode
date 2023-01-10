@@ -46,15 +46,13 @@ class Decryption {
 		int s = v < 0 ? -v : v;
 		if (!v) return; /* zero stays */
 		el1 = (v > 0) ? el->n : el;
+		/* unlink */
+		el->n->p = el->p;
+		el->p->n = el->n;
 		for (int i = 0; i < s; i++) {
 			if (v > 0) el1 = el1->n;
 			else if (v < 0) el1 = el1->p;
 		}
-		if (el == el1)
-			return;
-		/* unlink */
-		el->n->p = el->p;
-		el->p->n = el->n;
 		/* link in new position */
 		el->p = el1->p;
 		el->p->n = el;
