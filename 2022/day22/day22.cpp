@@ -22,57 +22,49 @@ class MoMap {
 	struct coord {
 		int x;
 		int y;
+		struct coord &operator+=(const struct coord &s) { x += s.x; y += s.y; return *this; };
+		friend struct coord operator+(struct coord l, const struct coord &r) { l += r; return l; };
 	};
 	inline int cToIdx(const struct coord &c) { return c.x + c.y * xMax; };
 	void walk(struct coord &pos, int dir, std::string steps) {
 		int dx = 0, dy = 0, s;
+		struct coord d = { 0, 0 };
 		sscanf(steps.c_str(), "%d", &s);
-		if (dir == eRight) {
-			dx = 1;
-			dy = 0;
-		} else if (dir == eDown) {
-			dx = 0;
-			dy = 1;
-		} else if (dir == eLeft) {
-			dx = -1;
-			dy = 0;
-		} else if (dir == eUp) {
-			dx = 0;
-			dy = -1;
-		}
+		if (dir == eRight) d.x = 1;
+		else if (dir == eDown) d.y = 1;
+		else if (dir == eLeft) d.x = -1;
+		else if (dir == eUp) d.y = -1;
 		for (int i = 0; i < s; i++) {
-			struct coord nc = { pos.x + dx, pos.y + dy };
-			if (dx) {
+			struct coord nc = pos + d;
+			if (d.x) {
 				if (nc.x >= xMax) {
 					nc.x = 0;
 				} else if (nc.x < 0) {
 					nc.x = xMax - 1;
 				} else if (!map[cToIdx(nc)]) {
-					if (dx > 0)
+					if (d.x > 0)
 						nc.x = 0;
-					if (dx < 0)
+					if (d.x < 0)
 						nc.x = xMax - 1;
 				} else {
 					goto wrapped;
 				}
-				for (int x = 0; (x < xMax) && !map[cToIdx(nc)]; x++)
-					nc.x += dx;
-			} else if (dy) {
+			} else if (d.y) {
 				if (nc.y >= yMax) {
 					nc.y = 0;
 				} else if (nc.y < 0) {
 					nc.y = yMax - 1;
 				} else if (!map[cToIdx(nc)]) {
-					if (dy > 0)
+					if (d.y > 0)
 						nc.y = 0;
-					if (dy < 0)
+					if (d.y < 0)
 						nc.y = yMax - 1;
 				} else {
 					goto wrapped;
 				}
-				for (int y = 0; (y < yMax) && !map[cToIdx(nc)]; y++)
-					nc.y += dy;
 			}
+			for (int j = 0; (j < (d.x ? xMax : yMax)) && !map[cToIdx(nc)]; j++)
+				nc += d;
 wrapped:
 			if (map[cToIdx(nc)] == '#')
 				break;
