@@ -23,41 +23,7 @@ class MoMap {
 		int x;
 		int y;
 	};
-	void step(struct coord &nc, int dx, int dy) {
-		nc.x += dx;
-		nc.y += dy;
-		if (dx) {
-			if (nc.x >= xMax) {
-				nc.x = 0;
-			} else if (nc.x < 0) {
-				nc.x = xMax - 1;
-			} else if (!map[nc.x + nc.y * xMax]) {
-				if (dx > 0)
-					nc.x = 0;
-				if (dx < 0)
-					nc.x = xMax - 1;
-			} else {
-				return;
-			}
-			for (int x = 0; (x < xMax) && !map[nc.x + nc.y * xMax]; x++)
-				nc.x += dx;
-		} else if (dy) {
-			if (nc.y >= yMax) {
-				nc.y = 0;
-			} else if (nc.y < 0) {
-				nc.y = yMax - 1;
-			} else if (!map[nc.x + nc.y * xMax]) {
-				if (dy > 0)
-					nc.y = 0;
-				if (dy < 0)
-					nc.y = yMax - 1;
-			} else {
-				return;
-			}
-			for (int y = 0; (y < yMax) && !map[nc.x + nc.y * xMax]; y++)
-				nc.y += dy;
-		}
-	};
+	inline int cToIdx(const struct coord &c) { return c.x + c.y * xMax; };
 	void walk(struct coord &pos, int dir, std::string steps) {
 		int dx = 0, dy = 0, s;
 		sscanf(steps.c_str(), "%d", &s);
@@ -75,9 +41,40 @@ class MoMap {
 			dy = -1;
 		}
 		for (int i = 0; i < s; i++) {
-			struct coord nc = pos;
-			step(nc, dx, dy);
-			if (map[nc.x + nc.y * xMax] == '#')
+			struct coord nc = { pos.x + dx, pos.y + dy };
+			if (dx) {
+				if (nc.x >= xMax) {
+					nc.x = 0;
+				} else if (nc.x < 0) {
+					nc.x = xMax - 1;
+				} else if (!map[cToIdx(nc)]) {
+					if (dx > 0)
+						nc.x = 0;
+					if (dx < 0)
+						nc.x = xMax - 1;
+				} else {
+					goto wrapped;
+				}
+				for (int x = 0; (x < xMax) && !map[cToIdx(nc)]; x++)
+					nc.x += dx;
+			} else if (dy) {
+				if (nc.y >= yMax) {
+					nc.y = 0;
+				} else if (nc.y < 0) {
+					nc.y = yMax - 1;
+				} else if (!map[cToIdx(nc)]) {
+					if (dy > 0)
+						nc.y = 0;
+					if (dy < 0)
+						nc.y = yMax - 1;
+				} else {
+					goto wrapped;
+				}
+				for (int y = 0; (y < yMax) && !map[cToIdx(nc)]; y++)
+					nc.y += dy;
+			}
+wrapped:
+			if (map[cToIdx(nc)] == '#')
 				break;
 			pos = nc;
 		}
@@ -142,7 +139,7 @@ public:
 		for (int y = 0; y < input.size(); y++)
 			for (int x = 0; x < input[y].size(); x++)
 				if (input[y][x] != ' ')
-					map[x + y * xMax] = input[y][x];
+					map[cToIdx({x,y})] = input[y][x];
 
 		doPartOne();
 		doPartTwo();
