@@ -16,13 +16,13 @@ public:
 		return "(" + std::to_string(x) + "," + std::to_string(y) + "," + std::to_string(z) + ")";
 	};
 	Vec &operator+=(const Vec &s) { x += s.x; y += s.y; z += s.z; return *this; };
-	friend Vec operator+(Vec l, const Vec &r) { l += r; return l; };
+	friend Vec operator+(Vec &l, const Vec &r) { l += r; return l; };
 	Vec &operator*=(const int c) { x *= c; y *= c; z *= c; return *this; };
 	friend Vec operator*(Vec l, const int c) { l *= c; return l; };
 	Vec &operator*=(const Vec &s) { x *= s.x; y *= s.y; z *= s.z; return *this; };
 	friend Vec operator*(Vec l, const Vec &r) { l.x *= r.x; l.y *= r.y; l.z *= r.z; return l; };
 	Vec cross(const Vec &s) {
-		return Vec(y * s.z - z * s.y, -1 * (x * s.z - z * s.x), x * s.y - y * s.x);
+		return Vec(y * s.z - z * s.y, (x * s.z - z * s.x) * -1, x * s.y - y * s.x);
 	};
 	Vec normal(void) {
 		return Vec(x ? (x / std::abs(x)) : 0, y ? (y / std::abs(y)) : 0, z ? (z / std::abs(z)) : 0);
@@ -42,42 +42,37 @@ public:
 	};
 	Mat() { for (int i = 0; i < sizeof(el) / sizeof(el[0]); i++) el[i] = 0; };
 	Mat& multiply(const Mat &m) {
-		int res[9];
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				int val = 0;
+		int res[9] = { 0 };
+		for (int j = 0; j < 3; j++) {
+			for (int i = 0; i < 3; i++) {
 				for (int k = 0; k < 3; k++)
-					val += el[i + (k * 3)] * m.el[k + (i * 3)];
-				res[i + (j * 3)] = val;
+					res[i + j * 3] += m.el[i + k * 3] * el[k + j * 3];
 			}
 		}
-		for (int i = 0; i < sizeof(el) / sizeof(el[0]); i++) el[i] = res[i];
+		memcpy(el, res, sizeof(el));
 		return *this;
 	};
-	Mat& operator*=(const Mat &m) { return multiply(m); };
 	Vec multiply(const Vec &v) {
 		return Vec(	el[0] * v.x + el[1] * v.y + el[2] * v.z,
 				el[3] * v.x + el[4] * v.y + el[5] * v.z,
 				el[6] * v.x + el[7] * v.y + el[8] * v.z);
 	};
+	Mat& operator*=(const Mat &m) { return multiply(m); };
+	Vec operator*=(const Vec &v) { return multiply(v); };
+	friend Mat operator*(Mat l, const Mat &r) { return l *= r; };
+	friend Vec operator*(Mat l, const Vec &r) { return l *= r; };
 	static inline int sinSq(int angle) {
-		if (angle == 0 || angle == 180 || angle == 360 || angle == -180 || angle == -360)
-			return 0;
-		if (angle == 90 || angle == -270)
-			return 1;
-		if (angle == -90 || angle == 270)
-			return -1;
-		std::cout << "Something Wrong! " << angle << std::endl;
+		if (!(angle % 180)) return 0;
+		if (angle == 90 || angle == -270) return 1;
+		if (angle == -90 || angle == 270) return -1;
+		std::cout << __func__ << ": Something Wrong! " << angle << std::endl;
 		exit(0);
 	};
 	static inline int cosSq(int angle) {
-		if (angle == 0 || angle == 360 || angle == -360)
-			return 1;
-		if (angle == 180 || angle == -180)
-			return -1;
-		if (angle == 90 || angle == -270 || angle == -90 || angle == 270)
-			return 0;
-		std::cout << "Something Wrong! " << angle << std::endl;
+		if (!(angle % 360)) return 1;
+		if (!(angle % 180)) return -1;
+		if (!(angle % 90)) return 0;
+		std::cout << __func__ << ": Something Wrong! " << angle << std::endl;
 		exit(0);
 	};
 	static Mat rotMat(int a, int b, int g) {
@@ -95,31 +90,38 @@ public:
 		rot.el[8] = cosSq(a) * cosSq(b);
 		return rot;
 	};
-	static Mat rotMat(int angle, Vec axis) {
+	static Mat rotMat(int angle, Vec v) {
+		Vec axis = v.normal();
 		Mat rot = Mat();
 		int cs = cosSq(angle);
 		int sn = sinSq(angle);
-		rot.el[0] = axis.x * (1 - cs) + cs;
-		rot.el[1] = axis.y * axis.x * (1 - cs) + axis.z * sn;
-		rot.el[2] = axis.z * axis.z * (1 - cs) - axis.y * sn;
+		rot.el[0] = axis.x * axis.x * (1 - cs) + cs;
+		rot.el[1] = axis.y * axis.x * (1 - cs) - axis.z * sn;
+		rot.el[2] = axis.x * axis.z * (1 - cs) + axis.y * sn;
 
-		rot.el[3] = axis.x * axis.y * (1 - cs) - axis.z * sn;
-		rot.el[4] = axis.y * (1 - cs) + cs;
-		rot.el[5] = axis.z * axis.z * (1 - cs) + axis.x * sn;
+		rot.el[3] = axis.x * axis.y * (1 - cs) + axis.z * sn;
+		rot.el[4] = axis.y * axis.y * (1 - cs) + cs;
+		rot.el[5] = axis.y * axis.z * (1 - cs) - axis.x * sn;
 
-		rot.el[6] = axis.x * axis.z * (1 - cs) + axis.y * sn;
-		rot.el[7] = axis.y * axis.z * (1 - cs) - axis.x * sn;
-		rot.el[8] = axis.z * (1 - cs) + cs;
+		rot.el[6] = axis.x * axis.z * (1 - cs) - axis.y * sn;
+		rot.el[7] = axis.y * axis.z * (1 - cs) + axis.x * sn;
+		rot.el[8] = axis.z * axis.z * (1 - cs) + cs;
 		return rot;
 	}
-	std::string toStr(void) {
+	std::string toStr(std::string pfx) {
 		std::string ret;
 		for (int i = 0; i < sizeof(el) / sizeof(el[0]); i++) {
-			if (i && !(i%3))
-				ret += "\n";
+			if (!(i%3)) {
+				if (i)
+					ret += "\n";
+				ret += pfx;
+			}
 			ret += std::to_string(el[i]) + " ";
 		}
 		return ret;
+	};
+	std::string toStr(void) {
+		return toStr("");
 	};
 };
 
@@ -226,15 +228,10 @@ wrapped:
 		/* wrap around X axis */
 		for (int y = 0; y < yMax; y++) {
 			for (int x = 0; x < xMax; x++) {
-				int angle = 90 * (y / sz);
+				int angle = -90 * (y / sz);
 				Vec v = Vec((x % sz), (y % sz), 0);
 				Mat rm = Mat::rotMat(angle, Vec(1, 0, 0));
 				Vec r = rm.multiply(v);
-				r *= Vec(1, 1, -1);
-				if (angle == 90 || angle == 180)
-					r += Vec(0, sz - 1, 0);
-				if (angle == 180 || angle == 270)
-					r += Vec(0, 0, sz - 1);
 				char c = map[cToIdx(x, y, 0)];
 				if (c) 	std::cout << c << r.toStr() << " ";
 				else std::cout << "         ";
@@ -245,21 +242,48 @@ wrapped:
 		/* wrap around Y axis */
 		for (int y = 0; y < yMax; y++) {
 			for (int x = 0; x < xMax; x++) {
-				int angle = 90 * (x / sz);
+				int angle = -90 * (x / sz);
 				Vec v = Vec((x % sz), (y % sz), 0);
 				Mat rm = Mat::rotMat(angle, Vec(0, 1, 0));
 				Vec r = rm.multiply(v);
-//				r *= Vec(1, 1, -1);
-				if (angle == 90 || angle == 180)
-					r += Vec(sz - 1, 0, 0);
-				if (angle == 180 || angle == 270)
-					r += Vec(0, 0, sz - 1);
 				char c = map[cToIdx(x, y, 0)];
 				if (c) 	std::cout << c << r.toStr() << " ";
 				else std::cout << "         ";
 			}
 			std::cout << std::endl;
 		}
+
+		for (int i = -4; i < 5; i++) {
+			int ang = 90 * i;
+			std::cout << "Angle: " << ang << std::endl;
+			std::cout << "X axis:" << std::endl;
+			std::cout << Mat::rotMat(ang, Vec(1, 0, 0)).toStr("\t") << std::endl;
+			std::cout << "Y axis:" << std::endl;
+			std::cout << Mat::rotMat(ang, Vec(0, 1, 0)).toStr("\t") << std::endl;
+			std::cout << "Z axis:" << std::endl;
+			std::cout << Mat::rotMat(ang, Vec(0, 0, 1)).toStr("\t") << std::endl;
+			std::cout << std::endl;
+		}
+
+		Vec uX = Vec(1, 0, 0);
+		Vec uY = Vec(0, 1, 0);
+		Vec uXY = uX.cross(uY);
+		Vec uXYX = uXY.cross(uX);
+		Mat rotX = Mat::rotMat(90, uX);
+		Mat rotY = Mat::rotMat(90, uY);
+		std::cout << "Investigation:" << std::endl;
+		std::cout << "90 degrees around X axis" << uX.toStr() << ":" << std::endl;
+		std::cout << rotX.toStr("\t") << std::endl;
+		std::cout << "90 degrees around Y axis" << uY.toStr() << ":" << std::endl;
+		std::cout << rotY.toStr("\t") << std::endl;
+		std::cout << "90 degrees around X and Y axis" << uXY.toStr() << ":" << std::endl;
+		std::cout << Mat::rotMat(90, uXY).toStr("\t") << std::endl;
+		Mat rotXY = rotX.multiply(rotY);
+		std::cout << "90 degrees around X axis multiplied by 90 degrees around Y axis:" << std::endl;
+		std::cout << rotXY.toStr("\t") << std::endl;
+		std::cout << uXYX.toStr() << std::endl;
+
+
 		while (off < instr.size()) {
 			std::string tkn = getInstrToken(instr, &off);
 		}
