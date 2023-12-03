@@ -11,7 +11,6 @@ public:
 	int posX1;
 	int posY;
 	Part(int number, int posX0, int posX1, int posY) : number(number), posX0(posX0), posX1(posX1), posY(posY) {};
-	string to_str() { return to_string(number) + "((" + to_string(posX0) + "," + to_string(posX1) + ")," + to_string(posY) + ")"; };
 };
 
 class Symbol {
@@ -21,7 +20,6 @@ public:
 	int posY;
 	vector<Part> prts;
 	Symbol(char sym, int posX, int posY) : sym(sym), posX(posX), posY(posY) {};
-	string to_str() { return (string() + sym) + "(" + to_string(posX) + "," + to_string(posY) + ")"; };
 };
 
 int main(int c, char **v) {
@@ -40,11 +38,8 @@ int main(int c, char **v) {
 			if (line[x] >= '0' && line[x] <= '9') {
 				if (off < 0)
 					off = x;
-				if (x == line.length() - 1) {
-					string snum = line.substr(off, x - off + 1);
-					parts.push_back(Part(stoi(snum), off, x, y));
-					off = -1;
-				}
+				if (x == line.length() - 1)
+					parts.push_back(Part(stoi(line.substr(off)), off, x, y));
 			} else {
 				if (off >= 0) {
 					string snum = line.substr(off, x - off);
@@ -62,11 +57,11 @@ int main(int c, char **v) {
 	int partTwo = 0;
 	for (auto &s: symbols) {
 		for (auto &p: parts) {
+			if (p.posX1 < s.posX - 1 || p.posX0 > s.posX + 1)
+				continue;
 			if (s.posY <= p.posY + 1 && s.posY >= p.posY - 1) {
-				if (p.posX1 < s.posX - 1 || p.posX0 > s.posX + 1)
-					continue;
-				partOne += p.number;
 				s.prts.push_back(p);
+				partOne += p.number;
 			}
 		}
 		if (s.sym == '*' && s.prts.size() == 2)
