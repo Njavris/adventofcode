@@ -2,49 +2,40 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
-#include <cmath>
 
 using namespace std;
 
 int main(int c, char **v) {
+	int partOne = 0, partTwo = 0;
 	if (c != 2)
 		return -1;
 	ifstream ifs(v[1]);
-	int partOne = 0, partTwo = 0;
-	vector<int> match, count;
+	vector<int> count, numbers;
 	string line;
-
-	while (getline(ifs, line)) {
+	for (int ln = 0, c = 0, l = 0, n = 0; getline(ifs, line); ln ++, numbers.clear(), c = l = n = 0) {
 		string tmp;
-		int cnt = 0;
-		vector<int> numbers;
 		istringstream iss(line);
 		iss >> tmp >> tmp;
 		while (iss >> tmp) {
-			if (tmp == "|")
+			if (++ n && tmp == "|" && (l = n - 1))
 				continue;
 			numbers.push_back(stoi(tmp));
 		}
-		for (int i = 10; i < numbers.size(); i++) {
-			for (int j = 0; j < 10; j++) {
-				if (numbers[i] == numbers[j]) {
-					cnt ++;
+		if (ln <= count.size())
+			count.push_back(0);
+		for (int i = l; i < numbers.size(); i ++) {
+			for (int j = 0; j < l; j ++) {
+				if (numbers[i] == numbers[j] && ++ c) {
+					if (count.size() <= ln + c)
+						count.push_back(0);
+					count[ln + c] += count[ln] + 1;
 					break;
 				}
 			}
 		}
-		partOne += pow(2, cnt - 1);
-		match.push_back(cnt);
-		count.push_back(1);
+		partOne += 1 << (c - 1);
+		partTwo += count[ln] + 1;
 	}
-
-	for (int i = 0; i < match.size(); i++) {
-		for (int j = 0; j < count[i]; j++)
-			for (int k = 1; k <= match[i] && i + k < match.size(); k++)
-				count[i + k] ++;
-		partTwo += count[i];
-	}
-	cout << "Part Two: " << partOne << endl;
-	cout << "Part Two: " << partTwo << endl;
+	cout << "Part One: " << partOne << endl << "Part Two: " << partTwo << endl;
 	return 0;
 }
