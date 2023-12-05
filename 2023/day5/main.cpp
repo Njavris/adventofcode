@@ -16,7 +16,6 @@ struct map {
 	map(int64_t a, int64_t b, int64_t c) : dst(a), src(b), len(c) {};
 	map(int64_t a, int64_t b) : dst(-1), src(a), len(b) {};
 	bool operator< (map const& r) { return addr < r.addr; };
-	string to_str() { return to_string(dst) + "," + to_string(src) + "," + to_string(len); };
 };
 
 void map_ranges(vector<struct map> &ranges, vector<struct map> &maps) {
@@ -29,31 +28,21 @@ void map_ranges(vector<struct map> &ranges, vector<struct map> &maps) {
 				ranges[i].src = m.dst + r.src - m.src;
 			} else if (r.addr >= m.src && r.addr < (m.src + m.len) &&
 					(r.addr + r.len - 1) >= (m.src + m.len)) {
-//cout << __func__ << " " << __LINE__ << endl;
-//cout << "#" << r.to_str() << " " << m.to_str() << endl;
 				/* split into 2 ranges */
 				struct map tmp(m.src + m.len, r.len - (m.src + m.len - r.addr));
 				ranges[i].addr = m.dst + r.addr - m.src;
 				ranges[i].len = m.src + m.len - r.addr;
 				old.push_back(tmp);
 				ranges.push_back(tmp);
-//cout << ranges[i].to_str() << endl;
-//cout << tmp.to_str() << endl;
 			} else if (r.addr < m.src && (r.addr + r.len - 1) >= m.src &&
 					(r.addr + r.len - 1) < (m.src + m.len)) {
 				/* split into 2 ranges */
-//cout << __func__ << " " << __LINE__ << endl;
-//cout << "#" << r.to_str() << " " << m.to_str() << endl;
 				struct map tmp(r.addr, m.src - r.addr);
 				ranges[i].addr = m.dst;
 				ranges[i].len = r.len - tmp.len;
 				old.push_back(tmp);
 				ranges.push_back(tmp);
-//cout << ranges[i].to_str() << endl;
-//cout << tmp.to_str() << endl;
 			} else if (r.src < m.src && (r.addr + r.len - 1) >= (m.src + m.len)) {
-//cout << __func__ << " " << __LINE__ << endl;
-//cout << "#" << r.to_str() << " " << m.to_str() << endl;
 				/* split into 3 ranges */
 				struct map tmp1(r.addr, m.src - r.addr);
 				ranges[i].addr = m.dst;
@@ -63,17 +52,9 @@ void map_ranges(vector<struct map> &ranges, vector<struct map> &maps) {
 				old.push_back(tmp2);
 				ranges.push_back(tmp1);
 				ranges.push_back(tmp2);
-//cout << ranges[i].to_str() << endl;
-//cout << tmp1.to_str() << endl;
-//cout << tmp2.to_str() << endl;
 			}
 		}
 	}
-//	for (auto &m: maps)
-//		cout << m.to_str() << endl;
-//	for (auto &r: ranges)
-//		cout << r.to_str() << endl;
-//	cout << endl;
 };
 
 int main(int c, char **v) {
@@ -97,7 +78,7 @@ int main(int c, char **v) {
 		if (!line.size())
 			continue;
 		if (line.find("map") != string::npos) {
-//			map_ranges(rangesOne, maps);
+			map_ranges(rangesOne, maps);
 			map_ranges(rangesTwo, maps);
 			maps.clear();
 			continue;
@@ -108,7 +89,7 @@ int main(int c, char **v) {
 		for (int i = 0; i < sizeof(val)/sizeof(val[0]); iss >> val[i++]);
 		maps.push_back(map(val[0], val[1], val[2]));
 	}
-//	map_ranges(rangesOne, maps);
+	map_ranges(rangesOne, maps);
 	map_ranges(rangesTwo, maps);
 	cout << "Part One: " << (*min_element(begin(rangesOne), end(rangesOne))).addr << endl;
 	cout << "Part Two: " << (*min_element(begin(rangesTwo), end(rangesTwo))).addr << endl;
