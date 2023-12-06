@@ -8,6 +8,7 @@ using namespace std;
 struct map {
 	int64_t dst, src, len;
 	map(int64_t a, int64_t b, int64_t c) : dst(a), src(b), len(c) {};
+	map(int64_t a, int64_t b) : dst(-1), src(a), len(b) {};
 };
 
 int64_t map_ranges(vector<struct map> &ranges, vector<struct map> &maps) {
@@ -21,17 +22,17 @@ int64_t map_ranges(vector<struct map> &ranges, vector<struct map> &maps) {
 					(r.src + r.len - 1) >= (m.src + m.len)) {
 				ranges[i].src = m.dst + r.src - m.src;
 				ranges[i].len = m.src + m.len - r.src;
-				ranges.push_back(map(-1, m.src + m.len, r.len - (m.src + m.len - r.src)));
+				ranges.push_back(map(m.src + m.len, r.len - (m.src + m.len - r.src)));
 			} else if (r.src < m.src && (r.src + r.len - 1) >= m.src &&
 					(r.src + r.len - 1) < (m.src + m.len)) {
 				ranges[i].src = m.dst;
 				ranges[i].len = r.len - m.src + r.src;
-				ranges.push_back(map(-1, r.src, m.src - r.src));
+				ranges.push_back(map(r.src, m.src - r.src));
 			} else if (r.src < m.src && (r.src + r.len - 1) >= (m.src + m.len)) {
 				ranges[i].src = m.dst;
 				ranges[i].len = m.len;
-				ranges.push_back(map(-1, r.src, m.src - r.src));
-				ranges.push_back(map(-1, m.src + m.len, r.len - m.src - r.len - m.len));
+				ranges.push_back(map(r.src, m.src - r.src));
+				ranges.push_back(map(m.src + m.len, r.len - m.src - r.len - m.len));
 			}
 		}
 		if (ret == -1 || ranges[i].src < ret)
@@ -52,9 +53,9 @@ int main(int c, char **v) {
 	int64_t tmp1, tmp2;
 	vector<struct map> maps, rangesOne, rangesTwo;
 	while (iss >> tmp1 >> tmp2) {
-		rangesOne.push_back(map(-1, tmp1, 1));
-		rangesOne.push_back(map(-1, tmp2, 1));
-		rangesTwo.push_back(map(-1, tmp1, tmp2));
+		rangesOne.push_back(map(tmp1, 1));
+		rangesOne.push_back(map(tmp2, 1));
+		rangesTwo.push_back(map(tmp1, tmp2));
 	}
 
 	while(getline(ifs, line)) {
