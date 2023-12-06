@@ -5,13 +5,13 @@
 
 using namespace std;
 
-struct map {
+typedef struct map {
 	int64_t dst, src, len;
 	map(int64_t a, int64_t b, int64_t c) : dst(a), src(b), len(c) {};
 	map(int64_t a, int64_t b) : dst(-1), src(a), len(b) {};
-};
+} Map;
 
-int64_t map_ranges(vector<struct map> &ranges, vector<struct map> &maps) {
+int64_t map_ranges(vector<Map> &ranges, vector<Map> &maps) {
 	int64_t ret = -1;
 	for (int i = 0; i < ranges.size(); i++) {
 		auto r = ranges[i];
@@ -51,7 +51,7 @@ int main(int c, char **v) {
 	iss.ignore(32, ' ');
 
 	int64_t tmp1, tmp2;
-	vector<struct map> maps, rangesOne, rangesTwo;
+	vector<Map> maps, rangesOne, rangesTwo;
 	while (iss >> tmp1 >> tmp2) {
 		rangesOne.push_back(map(tmp1, 1));
 		rangesOne.push_back(map(tmp2, 1));
