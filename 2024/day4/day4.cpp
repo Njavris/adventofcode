@@ -3,17 +3,17 @@
 #include <vector>
 
 
-int solveP1(std::vector<std::string> &input, int x, int y, int dirX, int dirY, std::string str) {
+int findStr(std::vector<std::string> &input, int x, int y, int dirX, int dirY, int len, std::string str, int offX = 0, int offY = 0) {
 	int matches = 0;
-	while (true) {
+	for (;;x += dirX, y += dirY) {
 		int endX = x + (dirX * (str.length() - 1));
 		int endY = y + (dirY * (str.length() - 1));
-		if (endX < 0 || endX >= input[0].size() || endY < 0 || endY >= input.size()) {
+		if (endX < 0 || endX >= len || endY < 0 || endY >= len) {
 			return matches;
 		}
 		bool match = true, matchRev = true;
 		for (int i = 0; i < str.size(); i++) {
-			int c = input[y + (i * dirY)][x + (i * dirX)];
+			int c = input[offY + y + (i * dirY)][offX + x + (i * dirX)];
 			if (c != str[i])
 				match = false;
 			if (c != str[str.size() - 1 - i])
@@ -23,8 +23,6 @@ int solveP1(std::vector<std::string> &input, int x, int y, int dirX, int dirY, s
 		}
 		if (match || matchRev)
 			matches ++;
-		x += dirX;
-		y += dirY;
 	}
 	return matches;
 };
@@ -34,33 +32,32 @@ int main(int argc, char **argv) {
 	std::ifstream ifs(argc == 2 ? argv[1] : "input");
 	std::string line;
 	std::vector<std::string> input;
-	while (getline(ifs, line))
+	while (getline(ifs, line)) {
+		static int l = 0;
 		input.push_back(line);
-
-	for (int i = 0; i < input.size(); i++) {
-		/* Horizontal */
-		partOne += solveP1(input, 0, i, 1, 0, "XMAS");
-		/* Vertical */
-		partOne += solveP1(input, i, 0, 0, 1, "XMAS");
-		/* Rising diagonals */
-		partOne += solveP1(input, i, 0, 1, 1, "XMAS");
-		partOne += solveP1(input, 0, i + 1, 1, 1, "XMAS");
-		/* Falling diagonals */
-		partOne += solveP1(input, 0, i, 1, -1, "XMAS");
-		partOne += solveP1(input, i + 1, input.size() - 1, 1, -1, "XMAS");
-	}
-
-	for (int y = 0; y < input.size() - 2; y++) {
+		if (l++ < 2)
+		    continue;
 		for (int x = 0; x < input[0].size() - 2; x++) {
-			std::vector<std::string> window;
-			for (int i = 0; i < 3; i++)
-				window.push_back(input[y + i].substr(x, 3));
-			if (solveP1(window, 0, 0, 1, 1, "MAS") && solveP1(window, 0, 2, 1, -1, "MAS"))
+			if (findStr(input, 0, 0, 1, 1, 3, "MAS", x, l - 3) &&
+					findStr(input, 0, 2, 1, -1, 3, "MAS", x, l - 3))
 				partTwo++;
 		}
 	}
 
-	std::cout << "PartOne: " << partOne << std::endl;
-	std::cout << "PartTwo: " << partTwo << std::endl;
+	for (int i = 0; i < input.size(); i++) {
+		/* Horizontal */
+		partOne += findStr(input, 0, i, 1, 0, input.size(), "XMAS");
+		/* Vertical */
+		partOne += findStr(input, i, 0, 0, 1, input.size(), "XMAS");
+		/* Rising diagonals */
+		partOne += findStr(input, i, 0, 1, 1, input.size(), "XMAS");
+		partOne += findStr(input, 0, i + 1, 1, 1, input.size(), "XMAS");
+		/* Falling diagonals */
+		partOne += findStr(input, 0, i, 1, -1, input.size(), "XMAS");
+		partOne += findStr(input, i + 1, input.size() - 1, 1, -1, input.size(), "XMAS");
+	}
+
+	std::cout << "PartOne: " << partOne << " ?= 2500" << std::endl;
+	std::cout << "PartTwo: " << partTwo << " ?= 1933" << std::endl;
 	return 0;
 }
