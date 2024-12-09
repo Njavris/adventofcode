@@ -21,12 +21,12 @@ public:
 	std::string str(void) { return std::to_string(x) + "," + std::to_string(y); };
 };
 
-int solve(std::vector<std::string> &map, vec2 pos, bool p1 = false) {
+int solve(std::vector<std::string> &map, vec2 pos, bool p2 = false, int limit = 0) {
 	int tiles = 1, steps = 0;
 	vec2 dir(0, -1);
-	while (steps < map.size() * map[0].size()) {
+	while (!limit ? true : steps < limit) {
 		char dst = map[pos.y][pos.x];
-		if (p1 && dst == '.') {
+		if (!p2 && dst == '.') {
 			map[pos.y][pos.x] = 'X';
 			tiles++;
 		}
@@ -61,21 +61,19 @@ int main(int argc, char **argv) {
 			pos = vec2(x, map.size());
 		map.push_back(line);
 	}
-	for (auto &l: map)
-		std::cout << l << std::endl;
 
-	partOne = solve(map, pos, true);
+	partOne = solve(map, pos);
 	map[pos.y][pos.x] = '^';
 
 	for (auto &l: map) {
 		int idx = 0;
 		while((idx = l.find('X', idx)) != std::string::npos) {
 			l[idx] = '0';
-			partTwo += !solve(map, pos);
+			partTwo += !solve(map, pos, true, map.size() * map[0].size() / 2);
 			l[idx] = '.';
 		}
 	}
-	std::cout << "Part One: " << partOne << " ?= 5551" << std::endl;
-	std::cout << "Part Two: " << partTwo << " ?= 1939" << std::endl;
+	std::cout << "Part One: " << partOne << std::endl;
+	std::cout << "Part Two: " << partTwo << std::endl;
 	return 0;
 }
