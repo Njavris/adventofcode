@@ -60,7 +60,7 @@ public:
 	}
 };
 
-long int safetyFactor(vector<Robot> robots) {
+long int safetyFactor(vector<Robot> &robots) {
 	long int safety = 1;
 	int quadrants[4] = { 0 };
 	int midX = Robot::limit.x / 2;
