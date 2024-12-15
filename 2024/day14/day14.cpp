@@ -50,7 +50,6 @@ int distance(V2 const &p1, V2 const &p2) {
 class Robot {
 public:
 	static V2 limit;
-	static int partOne(vector<Robot> robots);
 	static int partTwo(vector<Robot> &robots);
 	V2 pos, vel;
 	string str() const {return "p=" + pos.str() + " v=" + vel.str(); }
@@ -60,15 +59,12 @@ public:
 		pos = pos % limit;
 	}
 };
-int Robot::partOne(vector<Robot> robots) {
-	int partOne = 1;
+
+long int safetyFactor(vector<Robot> robots) {
+	long int safety = 1;
 	int quadrants[4] = { 0 };
 	int midX = Robot::limit.x / 2;
 	int midY = Robot::limit.y / 2;
-
-	for (auto &r: robots)
-		r.step(100);
-
 	for (auto &r: robots) {
 		if (r.pos.x < midX && r.pos.y < midY)
 			quadrants[0] ++;
@@ -81,9 +77,17 @@ int Robot::partOne(vector<Robot> robots) {
 	}
 
 	for (int i = 0; i < sizeof(quadrants) / sizeof(quadrants[0]); i++)
-		partOne *= quadrants[i];
+		safety *= quadrants[i];
+	return safety;
+}
 
-	return partOne;
+int partOne(vector<Robot> robots) {
+	long int partOne = 1;
+
+	for (auto &r: robots)
+		r.step(100);
+
+	return safetyFactor(robots);
 }
 
 int Robot::partTwo(vector<Robot> &robots) {
@@ -132,18 +136,20 @@ int Robot::partTwo(vector<Robot> &robots) {
 	int minAvgDist = INT_MAX;
 	while (run) {
 		int avgDist = 0;
-		for (int i = 0; i < robots.size(); i++) {
-			Robot &r1 = robots[i];
-			for (int  j = i + 1; j < robots.size(); j++) {
-				Robot &r2 = robots[j];
-				avgDist += distance(r1.pos, r2.pos);
+		if (!pause) {
+			for (int i = 0; i < robots.size(); i++) {
+				Robot &r1 = robots[i];
+				for (int  j = i + 1; j < robots.size(); j++) {
+					Robot &r2 = robots[j];
+					avgDist += distance(r1.pos, r2.pos);
+				}
 			}
-		}
-		avgDist /= robots.size();
-		if (avgDist < minAvgDist) {
-			minAvgDist = avgDist;
-			cout << "time: " << seconds << " avg distance: " << minAvgDist << endl;
-			pause = true;
+			avgDist /= robots.size();
+			if (avgDist <= minAvgDist) {
+				minAvgDist = avgDist;
+				cout << "time: " << seconds << " avg distance: " << minAvgDist << endl;
+				pause = true;
+			}
 		}
 
 		SDL_Event event;
@@ -196,7 +202,7 @@ int Robot::partTwo(vector<Robot> &robots) {
 	delete[] buf;
 #else
 	int minAvgDist = INT_MAX;
-	int seconds = 0;
+	long int seconds = 0;
 	while (true) {	
 		int avgDist = 0;
 		for (int i = 0; i < robots.size(); i++) {
@@ -207,7 +213,7 @@ int Robot::partTwo(vector<Robot> &robots) {
 			}
 		}
 		avgDist /= robots.size();
-		if (avgDist < minAvgDist) {
+		if (avgDist <= minAvgDist) {
 			minAvgDist = avgDist;
 			cout << "time: " << seconds << " avg distance: " << minAvgDist << endl;
 		}
@@ -233,7 +239,7 @@ int main(int argc, char **argv) {
 		sscanf(s.c_str(), "p=%d,%d v=%d,%d", &p.x, &p.y, &v.x, &v.y);
 	}
 
-	cout << "Part One: " << Robot::partOne(robots) << endl;
+	cout << "Part One: " << partOne(robots) << endl;
 
 	Robot::partTwo(robots);
 	return 0;
