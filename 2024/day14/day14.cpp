@@ -134,6 +134,7 @@ int Robot::partTwo(vector<Robot> &robots) {
 	int seconds = 0;
 	int fps = 1000;
 	int minAvgDist = INT_MAX;
+//	int minSafety = INT_MAX;
 	while (run) {
 		int avgDist = 0;
 		if (!pause) {
@@ -148,8 +149,15 @@ int Robot::partTwo(vector<Robot> &robots) {
 			if (avgDist <= minAvgDist) {
 				minAvgDist = avgDist;
 				cout << "time: " << seconds << " avg distance: " << minAvgDist << endl;
+//				cout << "Safety: " << safetyFactor(robots) << endl;
 				pause = true;
 			}
+//			int safety = safetyFactor(robots);
+//			if (safety <= minSafety) {
+//				minSafety = safety;
+//				cout << "Min Safety " << minSafety << " time: " << seconds << endl;
+//				pause = true;
+//			}
 		}
 
 		SDL_Event event;
@@ -178,7 +186,9 @@ int Robot::partTwo(vector<Robot> &robots) {
 		memset(buf, 0, bufSz);
 		for (auto &r: robots) {
 			int idx = (r.pos.y * limit.x + r.pos.x) * 3;
-			*((uint32_t *)&buf[idx]) = 0xffffff;
+			buf[idx] = 0xff;
+			buf[idx + 1] = 0xff;
+			buf[idx + 2] = 0xff;
 			if (!pause) {
 				r.step(1);
 			} else {
