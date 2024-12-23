@@ -15,21 +15,16 @@ public:
 	SDL_Window *win;
 	SDL_Renderer *ren;
 	SDL_Texture *bufTxt;
-	int init(string title) {
+	int init() {
 		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 			cout << "Failed to init SDL: " << SDL_GetError() << endl;
 			return -1;
 		};
-		int x1 = x, y1 = y;
-		if (x < 1000 || y < 1000) {
-			x1 = x * (1000 / x);
-			y1 = y * (1000 / x);
-		}
-		win = SDL_CreateWindow(title.c_str(),
+		win = SDL_CreateWindow("Part Two",
 					SDL_WINDOWPOS_CENTERED,
 					SDL_WINDOWPOS_CENTERED,
-					x1,
-					y1,
+					x,
+					y,
 					SDL_WINDOW_SHOWN |
 					SDL_WINDOW_RESIZABLE);
 		if (!win) {
@@ -64,7 +59,7 @@ public:
 		SDL_RenderClear(ren);
 		SDL_RenderCopy(ren, bufTxt, NULL, NULL);
 		SDL_RenderPresent(ren);
-//		SDL_Delay(1000 / fps);
+		SDL_Delay(1000 / fps);
 		return 0;
 	};
 	bool getKeyPress(char &key) {
@@ -80,8 +75,8 @@ public:
 };
 #endif
 
-int dirsVal[][2] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 void moveP1(vector<string> &map, char m, int &rX, int &rY) {
+	int dirsVal[][2] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 	string dirsStr = "><v^";
 	int d = 0;
 	for (; d < sizeof(dirsVal) / sizeof(dirsVal[0]) && dirsStr[d] != m; d ++);
@@ -132,67 +127,8 @@ int printResultsP1(vector<string> &map) {
 	return ret;
 }
 
-bool p2LookVert(vector<string> &map, int x, int y, int d) {
-	bool ret = true;
-	char &c = map[y][x];
-	y += dirsVal[d][1];
-	int x1, x2;
-
-	if (c == '[') {
-		x1 = x;
-		x2 = x + 1;
-	} else if (c == ']') {
-		x1 = x - 1;
-		x2 = x;
-	}
-	char &b1 = map[y][x1];
-	char &b2 = map[y][x2];
-
-	if (b1 == '#' || b2 == '#')
-		return false;
-
-	if (b1 == '.' && b2 == '.')
-		return true;
-
-	if (b1 == '[' || b1 == ']')
-		ret &= p2LookVert(map, x1, y, d);
-
-	if (b2 == '[' || b2 == ']')
-		ret &= p2LookVert(map, x2, y, d);
-
-	return ret;
-} 
-
-void p2MoveVert(vector<string> &map, int x, int y, int d) {
-	bool ret = true;
-	char &c = map[y][x];
-	int nY = y + dirsVal[d][1];
-	int nX1, nX2;
-
-	if (c == '[') {
-		nX1 = x;
-		nX2 = x + 1;
-	} else if (c == ']') {
-		nX1 = x - 1;
-		nX2 = x;
-	}
-	char &b1 = map[nY][nX1];
-	char &b2 = map[nY][nX2];
-	char &c1 = map[y][nX1];
-	char &c2 = map[y][nX2];
-
-	if (b1 == '[' || b1 == ']')
-		p2MoveVert(map, nX1, nY, d);
-
-	if (b2 == '[' || b2 == ']')
-		p2MoveVert(map, nX2, nY, d);
-	b1 = '[';
-	b2 = ']';
-	c1 = '.';
-	c2 = '.';
-} 
-
 void moveP2(vector<string> &map, char m, int &rX, int &rY) {
+	int dirsVal[][2] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 	string dirsStr = "><v^";
 	int d = 0;
 	for (; d < sizeof(dirsVal) / sizeof(dirsVal[0]) && dirsStr[d] != m; d ++);
@@ -201,33 +137,33 @@ void moveP2(vector<string> &map, char m, int &rX, int &rY) {
 	int nY = rY + dirsVal[d][1];
 	char &n = map[nY][nX];
 	char &r = map[rY][rX];
-//	cout << m << ": " << rX << "," << rY << "(" << r << ") -> " << nX << "," << nY << "(" << n << ")" << endl;
+	cout << m << ": " << rX << "," << rY << "(" << r << ") -> " << nX << "," << nY << "(" << n << ")" << endl;
 
 	if (n == '.') {
 		n = '@';
 		r = '.';
 		rX = nX;
 		rY = nY;
-	} else if (d < 2 && (n == '[' || n == ']')) {
+	} else if (d > 1 && (n == '[' || n == ']')) {
 		int nbX = nX;
+		int nbY = nY;
+
 		while (true) {
-			char &nb = map[rY][nbX];
-			if (nb == '#') {
-				break;
-			} else if (nb == '.') {
-				for (int x = nbX; x != rX; map[rY][x] = map[rY][x - dirsVal[d][0]], x -= dirsVal[d][0]);
-				map[rY][rX] = '.';
+			nbX += dirsVal[d][0];
+			nbY += dirsVal[d][1];
+			char &nb = map[nbY][nbX];
+			if (nb == '.') {
+				nb = 'O';
+				n = '@';
+				r = '.';
 				rX = nX;
+				rY = nY;
+				break;
+			} else if (nb == 'O') {
+				continue;
+			} else {
 				break;
 			}
-			nbX += 2 * dirsVal[d][0];
-		}
-	} else if (d > 1 && (n == '[' || n == ']')) {
-		if (p2LookVert(map, nX, nY, d)) {
-			p2MoveVert(map, nX, nY, d);
-			map[rY][rX] = '.';
-			map[nY][nX] = '@';
-			rY = nY;
 		}
 	}
 }
@@ -236,19 +172,20 @@ int printResultsP2(vector<string> &map) {
 	int ret = 0;
 	for (int y = 0; y < map.size(); y++) {
 		for (int x = 0; x < map[y].size(); x++) {
-			if (map[y][x] == '[')
+			if (map[y][x] == 'O')
 				ret += y * 100 + x;
 		}
 	}
 	return ret;
 }
 
-void solve(vector<string> &map, string &moves, int rX, int rY, int height, int width, bool p2 = false) {
+void solve(vector<string> map, string &moves, int rX, int rY, int height, int width, bool p2 = false) {
 #ifdef SDL2
 	sdl2 sdl(width, height);
-	sdl.init(!p2 ? "Part One" : "PartTwo");
+	sdl.init();
 	char key;
 	uint32_t *buf = new uint32_t[sdl.sz];
+	sdl.fps = 1;
 #endif
 	int instr = 0;
 #ifdef SDL2
@@ -266,7 +203,7 @@ void solve(vector<string> &map, string &moves, int rX, int rY, int height, int w
 						c == '@' ? 0xff4040 : 0x0;
 			}
 		}
-		if (!(instr % 20))
+	//	if (!(instr % 50))
 		sdl.drawBuf(buf);
 #else
 	while (true) {
@@ -285,7 +222,7 @@ void solve(vector<string> &map, string &moves, int rX, int rY, int height, int w
 		}
 	}
 #ifdef SDL2
-//	sdl.deinit();
+	sdl.deinit();
 	delete[] buf;
 #endif
 }
@@ -296,7 +233,6 @@ int main(int argc, char **argv) {
 	string moves;
 	int width, height;
 	int rX, rY;
-	int rX1, rY1;
 
 	vector<string> map;
 	for (string s; getline(ifs,s);) {
@@ -311,6 +247,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	for (string s; getline(ifs,s); moves += s);
+//	solve(map, moves, rX, rY, map.size(), map[0].size());
 	vector<string> map1;
 	for (auto &row: map) {
 		string tmp;
@@ -329,11 +266,12 @@ int main(int argc, char **argv) {
 		map1.push_back(tmp);
 		int x = tmp.find('@'); 
 		if (x != string::npos) {
-			rX1 = x;
-			rY1 = map1.end() - map1.begin() - 1;
+			rX = x;
+			rY = map1.end() - map1.begin() - 1;
 		}
 	}
-	solve(map, moves, rX, rY, map.size(), map[0].size());
-	solve(map1, moves, rX1, rY1, map1.size(), map1[0].size(), true);
+	solve(map1, moves, rX, rY, map1.size(), map1[0].size(), true);
+
+
 	return 0;
 }
