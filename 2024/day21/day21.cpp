@@ -6,13 +6,14 @@
 using namespace std;
 
 typedef struct v2 {
-	int x, y;
+	int8_t x, y;
 	v2() : x(0), y(0) {};
 	v2(int x, int y) : x(x), y(y) {};
 	v2 &operator+=(v2 const &r) { x += r.x; y += r.y; return *this; }
 	v2 operator+(v2 const &r) { v2 ret = *this; return ret += r; }
 	v2 &operator-=(v2 const &r) { x -= r.x; y -= r.y; return *this; }
 	v2 operator-(v2 const &r) { v2 ret = *this; return ret -= r; }
+	int16_t s() const { return *(int16_t*)this; }
 } v2;
 bool operator==(v2 const &f, v2 const &s) { return f.x == s.x && f.y == s.y; }
 
@@ -45,6 +46,8 @@ v2 dirV2[] = {
 
 const char *numeric[] = { "789", "456", "123", " 0A", NULL };
 const char *directional[] = { " ^A", "<v>", NULL };
+v2 *strtNum = NULL;
+v2 *strtDir = NULL;
 
 v2 findKey(const char **keys, char key) {
 	for (int y = 0; keys[y]; y++) {
@@ -125,11 +128,11 @@ void translator(vector<dirStr> &ret, const char **keys, string input, v2 pos) {
 	}
 }
 
-v2 *lookup = NULL;
+v2 *keyLookup = NULL;
 void translator(vector<dirStr> &ret, const char **keys, dirStr input, v2 pos) {
 	for (auto &c : input) {
 		vector<dirStr> tmp;
-		v2 next = lookup[c];
+		v2 next = keyLookup[c];
 		v2 d = next - pos;
 		permutator(keys, tmp, d, pos);
 		pos = next;
@@ -146,48 +149,62 @@ int repeats(dirStr &s) {
 	return ret;
 }
 
+void robot(dirStr &dirs, int &res, int depth) {
+	vector<dirStr> tr;
+	translator(tr, directional, dirs, *strtDir);
+	int prune = 0;
+	depth --;
+	for (auto &t : tr) {
+		if (res && t.size() > res)
+			continue;
+		if (depth > 0) {
+			if (prune > repeats(t))
+				continue;
+			if (prune < repeats(t))
+				prune = repeats(t);
+				robot(t, res, depth);
+		} else {
+			if (!res || res > t.size()) {
+				res = t.size();
+				string s;
+				for (auto &c : t)
+					s += dirCh[c];
+				cout << "curr best: " << res << " " << s << endl;
+			}
+		}
+	}
+}
+
+int robot(string code) {
+	int ret = 0;
+	vector<dirStr> tr;
+	translator(tr, numeric, code, *strtNum);
+	int prune = 0;
+	for (auto &t : tr) {
+		if (prune > repeats(t))
+			continue;
+		if (prune < repeats(t))
+			prune = repeats(t);
+		robot(t, ret, 2);
+	}
+	return ret;
+}
+
 int partOne(vector<string> &codes) {
 	int ret = 0;
 	cout << endl;
-	v2 strtNum = findKey(numeric, 'A');
-	v2 strtDir = findKey(directional, 'A');
-	if (!lookup) {
-		lookup = new v2[eMax]();
+	strtNum = new v2();
+	strtDir = new v2();
+	*strtNum = findKey(numeric, 'A');
+	*strtDir = findKey(directional, 'A');
+	if (!keyLookup) {
+		keyLookup = new v2[eMax]();
 		for (int i = 0; i != eMax; i++) {
-			lookup[i] = findKey(directional, dirCh[i]);
+			keyLookup[i] = findKey(directional, dirCh[i]);
 		}
 	}
 	for (auto &code : codes) {
-		int shortest = 0;
-		vector<dirStr> tr1;
-		translator(tr1, numeric, code, strtNum);
-		int prune1 = 0;
-		for (auto &t : tr1) {
-			if (prune1 && prune1 > repeats(t))
-				continue;
-			if (!prune1 || prune1 < repeats(t))
-				prune1 = repeats(t);
-			vector<dirStr> tr2;
-			translator(tr2, directional, t, strtDir);
-			int prune2 = 0;
-			for (auto &t : tr2) {
-				if (prune2 && prune2 > repeats(t))
-					continue;
-				if (!prune2 || prune2 < repeats(t))
-					prune2 = repeats(t);
-				vector<dirStr> tr3;
-				translator(tr3, directional, t, strtDir);
-				for (auto &t : tr3) {
-					if (!shortest || shortest > t.size()) {
-						shortest = t.size();
-						string in4;
-						for (auto &c : t)
-							in4 += dirCh[c];
-						cout << "curr best: " << shortest << " " << in4 << endl;
-					}
-				}
-			}
-		}
+		int shortest = robot(code);
 		int digits;
 		sscanf(code.c_str(), "%dA", &digits);
 		cout << digits << " * " << shortest << endl;
