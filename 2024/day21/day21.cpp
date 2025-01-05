@@ -24,7 +24,9 @@ ostream &operator<<(ostream &o, const v2 &v) {
 	return o;
 }
 
-bool operator==(v2 const &f, v2 const &s) { return f.x == s.x && f.y == s.y; }
+bool operator==(v2 const &f, v2 const &s) {
+	return f.x == s.x && f.y == s.y;
+}
 
 
 map<char, v2> dirs {
@@ -37,19 +39,7 @@ map<char, v2> dirs {
 const char *numeric[] = { "789", "456", "123", " 0A", NULL };
 const char *directional[] = { " ^A", "<v>", NULL };
 
-vector<map<string, vector<string>>> dicts;
-
-v2 findKey(const char **keys, char key) {
-	for (int y = 0; keys[y]; y++) {
-		for (int x = 0; keys[y][x] != '\0'; x++) {
-			if (keys[y][x] == key)
-				return v2(x, y);
-			}
-		}
-	return v2(-1, -1);
-}
-
-void permutate(const char **k, vector<string> &ret, v2 set, v2 st, string curr = "") {
+void permutateV2(const char **k, vector<string> &ret, v2 set, v2 st, string curr = "") {
 	if (!set.x && !set.y) {
 		for (auto &v : curr) {
 			st += dirs[v];
@@ -67,7 +57,7 @@ void permutate(const char **k, vector<string> &ret, v2 set, v2 st, string curr =
 		int dX = set.x / abs(set.x);
 		t.x -= dX;
 		s += dX > 0 ? ">" : "<";
-		permutate(k, ret, t, st, s);
+		permutateV2(k, ret, t, st, s);
 	}
 	t = set;
 	s = curr;
@@ -75,63 +65,84 @@ void permutate(const char **k, vector<string> &ret, v2 set, v2 st, string curr =
 		int dY = set.y / abs(set.y);
 		t.y -= dY;
 		s += dY > 0 ? "v" : "^";
-		permutate(k, ret, t, st, s);
+		permutateV2(k, ret, t, st, s);
 	}
 }
 
+vector<map<string, vector<string>>> dict;
+
 void fillDictionary() {
+	dict.push_back(map<string, vector<string>>());
+	dict.push_back(map<string, vector<string>>());
+	auto findKey = [] (const char **keys, char key) -> v2 {
+		for (int y = 0; keys[y]; y++)
+			for (int x = 0; keys[y][x] != '\0'; x++)
+				if (keys[y][x] == key)
+					return v2(x, y);
+		return v2(-1, -1);
+	};
+
 	string nums = "0123456789A";
-	dicts.push_back(map<string, vector<string>>());
 	for (auto &k : nums) {
 		v2 st = findKey(numeric, k);
 		for (auto &k1 : nums) {
 			string key = string(1, k) + string(1, k1);
 			v2 fi = findKey(numeric, k1);
 			v2 d = fi - st;
-			dicts.back()[key] = vector<string>();
-			permutate(numeric, dicts.back()[key], d, st);
+			dict[0][key] = vector<string>();
+			permutateV2(numeric, dict[0][key], d, st);
 		}
 	}
 	string dirs = "<>^vA";
-	dicts.push_back(map<string, vector<string>>());
 	for (auto &k : dirs) {
 		v2 st = findKey(directional, k);
 		for (auto &k1 : dirs) {
 			string key = string(1, k) + string(1, k1);
 			v2 fi = findKey(directional, k1);
 			v2 d = fi - st;
-			dicts.back()[key] = vector<string>();
-			permutate(directional, dicts.back()[key], d, st);
+			dict[1][key] = vector<string>();
+			permutateV2(directional, dict[1][key], d, st);
 		}
 	}
 }
 
-int translate(long int &best, string &cons, int ci, string prod, int maxDepth, int depth = 0) {
+vector<string> &cachedLookup(string &key, int depth) {
+	if (dict[!!depth].count(key))
+		return dict[!!depth][key];
+
+	map<string, vector<string>> &cache = dict[!!depth];
+	if (cache.count(key))
+		return cache[key];
+	cache[key] = vector<string>();
+	for (int i = key.size() - 1; i >= 2; i--) {
+		string k = key.substr(0, i);
+		if (!cache.count(k)) 
+			continue;
+		vector<string> &r1 = cache[k];
+		string k1 = key.substr(i - 1);
+		vector<string> &r2 = cachedLookup(k1, depth);
+		for (auto &i1 : r1) {
+			for (auto &i2 : r2) {
+				cache[key].push_back(i1 + i2);
+			}
+		}
+		break;
+	}
+	return cache[key]; 
+}
+
+int translate(long int &best, string &cons, int maxDepth, int depth = 0) {
 	if (depth > maxDepth) {
 		if (!best || best > cons.size()) {
 			best = cons.size();
 		}
 		return best;
 	}
-	if (ci + 1 == cons.size()) {
-		return translate(best, prod, 0, "", maxDepth, depth + 1);
-	}
+	string key = "A" + cons;
+	vector<string> &tr = cachedLookup(key, depth);
 
-	char c = cons[ci];
-	char n = cons[ci + 1];
-	if (!prod.size()) {
-		c = 'A';
-		n = cons[0];
-	} else {
-		ci ++;
-	}
-	string k{c, n};
-	vector<string> &entry = dicts[!!depth][k];
-	for (auto &d : entry) {
-		translate(best, cons, ci, prod + d, maxDepth, depth);
-	}
-		
-
+	for (auto &s : tr)
+		translate(best, s, maxDepth, depth + 1);
 	return best;
 } 
 
@@ -140,7 +151,8 @@ long int solve(vector<string> &codes, int depth) {
 	cout << endl;
 	for (auto cd: codes) {
 		long int best = 0;
-		translate(best, cd, 0, "", depth);
+		cd = cd;
+		translate(best, cd, depth);
 		cout << cd << " " << best << endl;
 		cd.pop_back();
 		ret += best * strtol(cd.c_str(), NULL, 10);
@@ -157,5 +169,6 @@ int main(int argc, char **argv) {
 
 	fillDictionary();
 	cout << "Part One: " << solve(in, 2) << endl;
+	cout << "Part Two: " << solve(in, 25) << endl;
 	return 0;
 }
