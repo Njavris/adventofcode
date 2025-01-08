@@ -37,15 +37,9 @@ string findPath(const char **k, string key) {
 	v2 set = finish - start;
 	bool order = true;
 
-	/* these two stole from reddit */
-	if (set.y > 0 && set.x >= 0)
+	if ((start.y == ill.y && finish.x == ill.x) || set.x > 0)
 		order = false;
-	if (set.y < 0 && set.x > 0)
-		order = false;
-
-	if (start.y == ill.y && finish.x == ill.x)
-		order = false;
-	else if (start.x == ill.x && finish.y == ill.y)
+	if (start.x == ill.x && finish.y == ill.y)
 		order = true;
 	string chset[] = {
 			order ? "<>" : "^v",
@@ -206,7 +200,6 @@ int main(int argc, char **argv) {
 	t.stopTiming();
 	cout << "Part One: " << partOne << endl;
 	cout << t.getTimeStr() << endl;
-
 	t.startTiming();
 	long int partTwo = solve(in, 25);
 	t.stopTiming();
