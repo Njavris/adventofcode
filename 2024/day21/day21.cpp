@@ -2,10 +2,63 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
-#include <map>
+#include <unordered_map>
 #include <chrono>
 
 using namespace std;
+
+class Timer {
+	bool stopped;
+	chrono::high_resolution_clock::time_point start;
+	chrono::high_resolution_clock::time_point end;
+public:
+	Timer(void) : stopped(false) { startTiming(); };
+	void startTiming(void) {
+		stopped = false;
+		start = chrono::high_resolution_clock::now();
+	};
+	void stopTiming(void) {
+		end = chrono::high_resolution_clock::now();
+		stopped = true;
+	};
+	string getTimeStr(void) const {
+		string ret = "";
+		if (!stopped)
+			return "";
+		auto durationUs = chrono::duration_cast<chrono::microseconds>(end - start);
+		auto durationMs = chrono::duration_cast<chrono::milliseconds>(end - start);
+		auto durationS = chrono::duration_cast<chrono::seconds>(end - start);
+		auto durationM = chrono::duration_cast<chrono::minutes>(end - start);
+		auto durationH = chrono::duration_cast<chrono::hours>(end - start);
+		chrono::duration<long, micro> intUs = durationUs;
+		chrono::duration<long, milli> intMs = durationMs;
+		chrono::duration<long, ratio<1>> intS = durationS;
+		chrono::duration<long, ratio<60>> intM = durationM;
+		chrono::duration<long, ratio<3600>> intH = durationH;
+
+		if (intMs.count()) {
+			if (intS.count()) {
+				if (intM.count()) {
+					if (intH.count()) {
+						ret += to_string(intH.count()) + "h ";
+					}
+					ret += to_string(intM.count() % 60) + "m ";
+				}
+				ret += to_string(intS.count() % 60) + "s ";
+			}
+			ret += to_string(intMs.count() % 1000) + "ms ";
+		}
+		ret += to_string(intUs.count() % 1000) + "us ";
+		ret += "(" + to_string(intUs.count()) + "us)";
+		return ret;
+	};
+	friend ostream &operator<<(ostream &o, const Timer &t);
+};
+
+ostream &operator<<(ostream &o, const Timer &t){
+	o << t.getTimeStr();
+	return o;
+}
 
 typedef struct v2 {
 	int x, y;
@@ -60,9 +113,9 @@ string findPath(const char **k, string key) {
 
 const char *numeric[] = { "789", "456", "123", " 0A", NULL };
 const char *directional[] = { " ^A", "<v>", NULL };
-map<string, string> pathCache;
-map<string, long int> translationCache[25];
-map<string, string> keymap;
+unordered_map<string, string> pathCache;
+vector<unordered_map<string, long int>> translationCache;
+unordered_map<string, string> keymap;
 
 string pathfind(string &key) {
 	if (pathCache.count(key))
@@ -95,6 +148,7 @@ string pathfind(string &key) {
 
 long int translate(string &cons, int maxDepth, int depth = 0) {
 	long int ret = 0;
+
 	if (depth == maxDepth)
 		return cons.size();
 
@@ -116,9 +170,9 @@ long int translate(string &cons, int maxDepth, int depth = 0) {
 } 
 
 long int solve(vector<string> &codes, int depth) {
+	translationCache = vector<unordered_map<string, long int>>(depth,
+			(unordered_map<string, long int>()));
 	long int ret = 0;
-	for (auto &c : translationCache)
-		c.clear();
 	auto nums = [] (string code) -> string {
 		string ret;
 		string key = "A";
@@ -140,53 +194,6 @@ long int solve(vector<string> &codes, int depth) {
 	return ret;
 }
 
-class Timer {
-	bool stopped;
-	chrono::high_resolution_clock::time_point start;
-	chrono::high_resolution_clock::time_point end;
-public:
-	Timer(void) : stopped(false) { startTiming(); };
-	void startTiming(void) {
-		stopped = false;
-		start = chrono::high_resolution_clock::now();
-	};
-	void stopTiming(void) {
-		end = chrono::high_resolution_clock::now();
-		stopped = true;
-	};
-	string getTimeStr(void) {
-		string ret = "";
-		if (!stopped)
-			return "";
-		auto durationUs = chrono::duration_cast<chrono::microseconds>(end - start);
-		auto durationMs = chrono::duration_cast<chrono::milliseconds>(end - start);
-		auto durationS = chrono::duration_cast<chrono::seconds>(end - start);
-		auto durationM = chrono::duration_cast<chrono::minutes>(end - start);
-		auto durationH = chrono::duration_cast<chrono::hours>(end - start);
-		chrono::duration<long, micro> intUs = durationUs;
-		chrono::duration<long, milli> intMs = durationMs;
-		chrono::duration<long, ratio<1>> intS = durationS;
-		chrono::duration<long, ratio<60>> intM = durationM;
-		chrono::duration<long, ratio<3600>> intH = durationH;
-
-		if (intMs.count()) {
-			if (intS.count()) {
-				if (intM.count()) {
-					if (intH.count()) {
-						ret += to_string(intH.count()) + "h ";
-					}
-					ret += to_string(intM.count() % 60) + "m ";
-				}
-				ret += to_string(intS.count() % 60) + "s ";
-			}
-			ret += to_string(intMs.count() % 1000) + "ms ";
-		}
-		ret += to_string(intUs.count() % 1000) + "us ";
-		ret += "(" + to_string(intUs.count()) + "us total)";
-		return ret;
-	};
-};
-
 int main(int argc, char **argv) {
 	ifstream ifs(argc == 2 ? argv[1] : "input");
 	vector<string> in;
@@ -199,11 +206,12 @@ int main(int argc, char **argv) {
 	long int partOne = solve(in, 2);
 	t.stopTiming();
 	cout << "Part One: " << partOne << endl;
-	cout << t.getTimeStr() << endl;
+	cout << t << endl;
+
 	t.startTiming();
 	long int partTwo = solve(in, 25);
 	t.stopTiming();
 	cout << "Part Two: " << partTwo << endl;
-	cout << t.getTimeStr() << endl;
+	cout << t << endl;
 	return 0;
 }
